@@ -37,6 +37,7 @@ from homeassistant.const import (
     CONF_ID,
     CONF_NAME,
     CONF_PORT,
+    CONF_SSL,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
 )
@@ -125,8 +126,9 @@ async def async_setup_entry(
     device_name = config_entry.data[CONF_NAME]
     hostname = config_entry.data[CONF_HOST]
     port = config_entry.data[CONF_PORT]
+    ssl = config_entry.data[CONF_SSL]
 
-    speaker = MopidySpeaker(hass, hostname, port)
+    speaker = MopidySpeaker(hass, hostname, port, ssl)
     entity = MopidyMediaPlayerEntity(speaker, device_name, device_uuid)
     async_add_entities([entity])
 
@@ -162,8 +164,9 @@ async def async_setup_platform(
     device_name = config.get(CONF_NAME)
     hostname = config.get(CONF_HOST)
     port = config.get(CONF_PORT)
+    ssl = config.get(CONF_SSL)
 
-    speaker = MopidySpeaker(hass, hostname, port)
+    speaker = MopidySpeaker(hass, hostname, port, ssl)
     entity = MopidyMediaPlayerEntity(speaker, device_name)
     async_add_entities([entity], True)
 

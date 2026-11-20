@@ -504,6 +504,7 @@ class MopidySpeaker:
     hass: HomeAssistant | None = None
     hostname: str | None = None
     port: int | None = None
+    ssl: bool = False
     api: MopidyAPI | None = None
     snapshot: dict | None = None
     queue: MopidyQueue | None = None
@@ -544,9 +545,11 @@ class MopidySpeaker:
         hass: HomeAssistant,
         hostname: str,
         port: int = None,
+        ssl: bool = False,
     ) -> None:
         self.hass = hass
         self.hostname = hostname
+        self.ssl = ssl
         if port is None:
             self.port = DEFAULT_PORT
         else:
@@ -554,7 +557,13 @@ class MopidySpeaker:
 
         self._attr_is_available = False
         self.queue = MopidyQueue()
-        self.queue.set_local_url_base(f"http://{hostname}:{port}")
+        if ssl:
+            self.queue.set_local_url_base(f"https://{hostname}:{port}")
+        else:
+            self.queue.set_local_url_base(f"http://{hostname}:{port}")
+
+        _LOGGER.info(f"Mopidy API is at {self.queue.local_url_base}")
+
         self.library = MopidyLibrary()
 
         self.__connect()
@@ -581,6 +590,7 @@ class MopidySpeaker:
         self.api = MopidyAPI(
             host = self.hostname,
             port = self.port,
+            ssl = self.ssl,
             use_websocket = True,
             logger = logging.getLogger(__name__ + ".api"),
         )

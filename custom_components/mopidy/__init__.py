@@ -6,7 +6,7 @@ from requests.exceptions import ConnectionError as reConnectionError
 
 from homeassistant.components.media_player import DOMAIN as MEDIA_PLAYER_DOMAIN
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PORT
+from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
@@ -20,11 +20,12 @@ async def async_setup(hass: HomeAssistant, config: dict):
     return True
 
 
-def _test_connection(host, port):
+def _test_connection(host, port, ssl):
     client = MopidyAPI(
         host=host,
         port=port,
         use_websocket=False,
+        ssl=ssl,
         logger=logging.getLogger(__name__ + ".client"),
     )
     client.rpc_call("core.get_version")
@@ -35,7 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up the mopidy from a config entry."""
     try:
         await hass.async_add_executor_job(
-            _test_connection, entry.data[CONF_HOST], entry.data[CONF_PORT]
+            _test_connection, entry.data[CONF_HOST], entry.data[CONF_PORT], entry.data[CONF_SSL]
         )
 
     except reConnectionError as error:

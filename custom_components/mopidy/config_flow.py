@@ -9,7 +9,7 @@ from requests.exceptions import ConnectionError as reConnectionError
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.const import CONF_HOST, CONF_ID, CONF_NAME, CONF_PORT, CONF_TYPE
+from homeassistant.const import CONF_HOST, CONF_ID, CONF_NAME, CONF_PORT, CONF_TYPE, CONF_SSL
 from homeassistant.core import callback
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import DiscoveryInfoType
@@ -19,12 +19,13 @@ from .const import DEFAULT_PORT, DOMAIN  # pylint: disable=unused-import
 _LOGGER = logging.getLogger(__name__)
 
 
-def _validate_input(host, port):
+def _validate_input(host, port, ssl):
     """Validate the user input."""
     client = MopidyAPI(
         host=host,
         port=port,
         use_websocket=False,
+        ssl=ssl,
         logger=logging.getLogger(__name__ + ".client"),
     )
     client.rpc_call("core.get_version")
@@ -42,6 +43,7 @@ class MopidyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._host: Optional[str] = None
         self._port: Optional[int] = None
         self._name: Optional[str] = None
+        self._ssl: Optional[bool] = False
         self._uuid: Optional[str] = None
 
     @callback
@@ -52,6 +54,7 @@ class MopidyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_NAME: self._name,
                 CONF_HOST: self._host,
                 CONF_PORT: self._port,
+                CONF_SSL: self._ssl,
                 CONF_ID: self._uuid,
             },
         )
@@ -63,6 +66,7 @@ class MopidyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_HOST: self._host,
                 CONF_PORT: self._port,
                 CONF_NAME: self._name,
+                CONF_SSL: self._ssl,
             }
         )
 
@@ -73,11 +77,12 @@ class MopidyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._host = user_input[CONF_HOST]
             self._port = user_input[CONF_PORT]
             self._name = user_input[CONF_NAME]
+            self._ssl = user_input[CONF_SSL]
             self._uuid = re.sub(r"[._-]+", "_", self._host) + "_" + str(self._port)
 
             try:
                 await self.hass.async_add_executor_job(
-                    _validate_input, self._host, self._port
+                    _validate_input, self._host, self._port, self._ssl
                 )
             except reConnectionError:
                 _LOGGER.error("Can't connect to %s:%d", self._host, self._port)
@@ -99,6 +104,7 @@ class MopidyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_NAME): cv.string,
                     vol.Required(CONF_HOST): cv.string,
                     vol.Required(CONF_PORT, default=DEFAULT_PORT): cv.positive_int,
+                    vol.Required(CONF_SSL, default=False): cv.boolean,
                 }
             ),
             errors=errors,
@@ -140,6 +146,8 @@ class MopidyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Set UUID.
         node_name = mdns_address.rsplit(".")[0]
         self._uuid = node_name + "_" + str(self._port)
+        # Disable SSL (unsupported by mopidy-http)
+        self._ssl = False
 
         await self._set_uid_and_abort()
 
@@ -150,7 +158,7 @@ class MopidyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 await self.hass.async_add_executor_job(
-                    _validate_input, self._host, self._port
+                    _validate_input, self._host, self._port, self._ssl
                 )
 
                 return self._async_get_entry()
@@ -163,5 +171,6 @@ class MopidyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "name": self._name,
                 "host": self._host,
                 "port": self._port,
+                "ssl": self._ssl,
             },
         )

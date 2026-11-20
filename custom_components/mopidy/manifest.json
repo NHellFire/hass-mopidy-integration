@@ -8,7 +8,7 @@
     "issue_tracker": "https://github.com/bushvin/hass-integrations/issues",
     "name": "Mopidy",
     "requirements": [
-        "mopidyapi>=1.1.0",
+        "mopidyapi@git+https://github.com/NHellFire/mopidyapi.git@186b7d4b44cdd42c758ba2a29dadf81b4d30ed77",
         "spotifyaio>=2.0,<3.0"
     ],
     "version": "2.4.2",
